@@ -1,0 +1,49 @@
+﻿@inject AuthenticationStateProvider authState
+@inject NavigationManager NavigationManager
+
+<nav class="navbar navbar-dark navbar-expand-lg bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#">Todoz</a>
+        <button class="navbar-toggler" type="button" @onclick="ToggleNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="@(_isNavCollapsed ? "collapse" : "") navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-md-auto">
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/todos/create">Add Todo</NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link bg-transparent border-0" @onclick="Logout">Logout</button>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/login">Login</NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/register">Register</NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private bool _isNavCollapsed = true;
+
+    private void ToggleNav()
+    {
+        _isNavCollapsed = !_isNavCollapsed;
+    }
+
+    private async Task Logout()
+    {
+        var auth = (AuthStateProvider)authState;
+        await auth.UpdateAuthState(null);
+        NavigationManager.NavigateTo("/", true);
+    }
+}

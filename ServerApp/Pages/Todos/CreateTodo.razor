@@ -1,0 +1,63 @@
+﻿@page "/todos/create"
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider authState
+@inject TodoService TodoService
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container mt-5">
+            <h2>Create New Todo</h2>
+            <div class="row">
+                <div class="col-md-6">
+                    <form @onsubmit="HandleFormSubmit">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Todo Title</label>
+                            <input type="text" class="form-control" id="title" @bind="newTodo.Title" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Todo Description</label>
+                            <textarea class="form-control" id="description" @bind="newTodo.Description"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Create Todo</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Access Denied!</h4>
+                        <p>You don't have permission to access this page. Please log in or register to continue.</p>
+                        <hr>
+                        <div class="d-flex justify-content-end">
+                            <a href="/login" class="btn btn-primary me-2">Login</a>
+                            <a href="/register" class="btn btn-success">Register</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private Todo newTodo = new Todo();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = (AuthStateProvider)authState;
+        newTodo.UserId = (await auth.GetAuthenticationStateAsync()).User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        // Call the service to create the new todo
+        await TodoService.CreateAsync(newTodo);
+
+        // Redirect to the todo list page after creating the todo
+        NavigationManager.NavigateTo("/");
+    }
+}

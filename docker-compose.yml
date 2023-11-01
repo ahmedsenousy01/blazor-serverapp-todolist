@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  serverapp:
+    container_name: blazor-todo
+    image: ${DOCKER_REGISTRY-}serverapp
+    build:
+      context: .
+      dockerfile: ServerApp/Dockerfile
+    ports:
+    - 10000:80

@@ -1,0 +1,64 @@
+﻿@page "/login"
+@using ServerApp.Data.Services.Security
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Authentication
+@inject UserService userService
+@inject IHttpContextAccessor Http
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider authStateProvider
+@using ServerApp.Auth
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Login</div>
+                <div class="card-body">
+                    <EditForm Model="@creds" OnValidSubmit="HandleValidSubmit">
+                        <div class="form-group mb-1">
+                            <label for="username">Username:</label>
+                            <InputText id="username" class="form-control" @bind-Value="@creds.UserName" />
+                            <ValidationMessage For="@(() => creds.UserName)" />
+                        </div>
+                        <div class="form-group mb-1">
+                            <label for="password">Password:</label>
+                            <input type="password" id="password" class="form-control" @bind="@creds.Password" />
+                            <ValidationMessage For="@(() => creds.Password)" />
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Login</button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    partial class Credentials
+    {
+        public string UserName { get; set; }
+        public string Password { get; set; }
+    }
+    private Credentials creds = new Credentials();
+    private bool showInvalidLoginMessage = false;
+
+    private async Task HandleValidSubmit()
+    {
+        var user = await userService.GetByUsernameAsync(creds.UserName);
+        if (user != null && HashingService.VerifyPassword(creds.Password, user.PasswordHash))
+        {
+            var auth = (AuthStateProvider)authStateProvider;
+            await auth.UpdateAuthState(new UserSession
+                {
+                    Id = user.Id,
+                    Role = user.Role.Value
+                });
+
+            NavigationManager.NavigateTo("/", true);
+        }
+        else
+        {
+            showInvalidLoginMessage = true;
+        }
+    }
+}

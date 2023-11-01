@@ -1,0 +1,108 @@
+﻿@page "/"
+@inject TodoService todoService
+@inject AuthenticationStateProvider authState
+@inject NavigationManager NavigationManager
+
+<PageTitle>My Todos</PageTitle>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container mt-5">
+            <div class="row">
+                <div class="col-md-6">
+                    @if (todos is null)
+                    {
+                        <div class="alert alert-info" role="alert">
+                            Loading...
+                        </div>
+                    }
+                    else if (todos.Count == 0)
+                    {
+                        <div class="alert alert-warning" role="alert">
+                            You have no todos.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row">
+                            @foreach (var todo in todos)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    <div class="card @GetCardStyle(todo)">
+                                        <div class="card-body">
+                                            <h5 class="card-title">@todo.Title</h5>
+                                            <p class="card-text">@todo.Description</p>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" @bind="todo.IsCompleted" @onclick="() => MarkTodoComplete(todo)" />
+                                                <label class="form-check-label">
+                                                    Complete
+                                                </label>
+                                            </div>
+                                            <button class="btn btn-primary btn-sm mt-2" @onclick="() => GoToEditPage(todo.Id)">Edit</button>
+                                            <button class="btn btn-danger btn-sm mt-2" @onclick="() => DeleteTodo(todo.Id)">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="container mt-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="alert alert-danger" role="alert">
+                        <h4 class="alert-heading">Access Denied!</h4>
+                        <p>You don't have permission to access this page. Please log in or register to continue.</p>
+                        <hr>
+                        <div class="d-flex justify-content-end">
+                            <a href="/login" class="btn btn-primary me-2">Login</a>
+                            <a href="/register" class="btn btn-success">Register</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private List<Todo> todos { get; set; } = null;
+    private Todo editedTodo { get; set; } = new Todo();
+    private string UserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = (AuthStateProvider)authState;
+        UserId = (await auth.GetAuthenticationStateAsync()).User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        todos = (await todoService.GetTodosByUserIdAsync(UserId!))!;
+    }
+
+    private void GoToEditPage(string todoId)
+    {
+        NavigationManager.NavigateTo($"/todos/{todoId}/edit");
+    }
+
+    private string GetCardStyle(Todo todo)
+    {
+        return todo.IsCompleted ? "bg-success text-white" : "bg-primary text-white";
+    }
+
+    private async Task DeleteTodo(string todoId)
+    {
+        // Call the TodoService method to delete the todo from the database
+        await todoService.DeleteAsync(todoId);
+
+        // Refresh the todos list after deleting the todo
+        todos = (await todoService.GetTodosByUserIdAsync(UserId!))!;
+    }
+
+    private async Task MarkTodoComplete(Todo todo)
+    {
+        await todoService.MarkTodoAsCompleted(todo.Id);
+        todos = (await todoService.GetTodosByUserIdAsync(UserId!))!;
+    }
+}
